@@ -21,7 +21,7 @@ public class UserControllerTest {
     }
 
     @Test
-    public void shouldFailValidationForEmptyEmail(){
+    public void shouldFailValidationForEmptyEmail() {
         User user = new User(1, "", "validLogin", "Valid Name", LocalDate.of(1990, 1, 1));
         assertThrows(ValidationException.class, () -> userController.createUser(user));
     }
