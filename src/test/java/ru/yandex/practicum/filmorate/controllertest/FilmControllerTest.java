@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class FilmControllerTest {
+
     private FilmController filmController;
 
     @BeforeEach
@@ -21,7 +22,6 @@ public class FilmControllerTest {
     @Test
     public void shouldFailValidationForEmptyName() {
         Film film = new Film(1, "", "Valid description", LocalDate.of(2000, 1, 1), 120);
-
         assertThrows(ValidationException.class, () -> filmController.addFilm(film));
     }
 
@@ -29,14 +29,12 @@ public class FilmControllerTest {
     public void shouldFailValidationForLongDescription() {
         String longDescription = "a".repeat(201);
         Film film = new Film(2, "Valid Name", longDescription, LocalDate.of(2000, 1, 1), 120);
-
         assertThrows(ValidationException.class, () -> filmController.addFilm(film));
     }
 
     @Test
     public void shouldFailValidationForNegativeDuration() {
         Film film = new Film(3, "Valid Name", "Valid description", LocalDate.of(2000, 1, 1), -120);
-
         assertThrows(ValidationException.class, () -> filmController.addFilm(film));
     }
 }
