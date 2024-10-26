@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.model.User;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 @RequestMapping("/users")
@@ -15,19 +16,21 @@ import java.util.List;
 public class UserController {
 
     private final List<User> users = new ArrayList<>();
+    private final AtomicInteger idCounter = new AtomicInteger(1);
 
     @PostMapping
-    public User createUser(@RequestBody User user) {
+    public void createUser(@RequestBody User user) {
         validateUser(user);
+        user.setId(idCounter.getAndIncrement());
         users.add(user);
         log.info("Создан новый пользователь: {}", user);
-        return user;
     }
 
     @PutMapping("/{id}")
     public User updateUser(@PathVariable int id, @RequestBody User user) {
         validateUser(user);
         users.removeIf(u -> u.getId() == id);
+        user.setId(id);
         users.add(user);
         log.info("Обновлен пользователь с id {}: {}", id, user);
         return user;
@@ -38,9 +41,7 @@ public class UserController {
         return users;
     }
 
-
     private void validateUser(User user) {
-
         if (user.getEmail() == null || user.getEmail().isEmpty() || !user.getEmail().contains("@")) {
             log.error("Ошибка валидации: электронная почта не может быть пустой и должна содержать символ @.");
             throw new ValidationException("Электронная почта не может быть пустой и должна содержать символ @.");
@@ -52,7 +53,7 @@ public class UserController {
         if (user.getName() == null || user.getName().isEmpty()) {
             user.setName(user.getLogin());
         }
-        if (user.getBirthDay() != null && user.getBirthDay().isAfter(LocalDate.now())) {
+        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
             log.error("Ошибка валидации: дата рождения не может быть в будущем.");
             throw new ValidationException("Дата рождения не может быть в будущем.");
         }

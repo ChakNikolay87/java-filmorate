@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 @RequestMapping("/films")
@@ -15,11 +16,13 @@ import java.util.List;
 public class FilmController {
 
     private final List<Film> films = new ArrayList<>();
+    private final AtomicInteger idCounter = new AtomicInteger(1);
     private static final LocalDate EARLIEST_RELEASE_DATE = LocalDate.of(1895, 12, 28);
 
     @PostMapping
     public Film addFilm(@RequestBody Film film) {
         validateFilm(film);
+        film.setId(idCounter.getAndIncrement());
         films.add(film);
         log.info("Добавлен новый фильм: {}", film);
         return film;
@@ -29,6 +32,7 @@ public class FilmController {
     public Film updateFilm(@PathVariable int id, @RequestBody Film film) {
         validateFilm(film);
         films.removeIf(f -> f.getId() == id);
+        film.setId(id); // сохраняем id при обновлении
         films.add(film);
         log.info("Обновлен фильм с id {}: {}", id, film);
         return film;
