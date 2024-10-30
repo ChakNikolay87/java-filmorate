@@ -1,60 +1,78 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import lombok.extern.slf4j.Slf4j;
+
+import ru.yandex.practicum.filmorate.exeptions.ValidationException;
+import ru.yandex.practicum.filmorate.model.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exeptions.ValidationException;
-import ru.yandex.practicum.filmorate.model.User;
-
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("/users")
-@Slf4j
 public class UserController {
 
-    private final List<User> users = new ArrayList<>();
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
+    private final Map<Integer, User> users = new HashMap<>();
     private int idCounter = 1;
 
     @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user) {
-        validateUser(user);
-        user.setId(idCounter++);
-        users.add(user);
-        log.info("Создан новый пользователь: {}", user);
-        return ResponseEntity.status(HttpStatus.CREATED).body(user);
+    public ResponseEntity<?> createUser(@RequestBody User user) {
+        try {
+            validateUser(user);
+            user.setId(idCounter++);
+            if (user.getName() == null || user.getName().isEmpty()) {
+                user.setName(user.getLogin());
+            }
+            users.put(user.getId(), user);
+            log.info("User created: {}", user);
+            return ResponseEntity.status(HttpStatus.CREATED).body(user);
+        } catch (ValidationException e) {
+            log.error("User creation failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Collections.singletonMap("error", e.getMessage()));
+        }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable int id, @RequestBody User user) {
-        validateUser(user);
-        user.setId(id);
-        users.removeIf(u -> u.getId() == id);
-        users.add(user);
-        log.info("Обновлен пользователь с id {}: {}", id, user);
-        return ResponseEntity.ok(user);
+    @PutMapping
+    public ResponseEntity<?> updateUser(@RequestBody User user) {
+        try {
+            validateUser(user);
+            if (!users.containsKey(user.getId())) {
+                log.error("User with id {} not found", user.getId());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Collections.singletonMap("error", "User not found"));
+            }
+            if (user.getName() == null || user.getName().isEmpty()) {
+                user.setName(user.getLogin());
+            }
+            users.put(user.getId(), user);
+            log.info("User updated: {}", user);
+            return ResponseEntity.ok(user);
+        } catch (ValidationException e) {
+            log.error("User update failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Collections.singletonMap("error", e.getMessage()));
+        }
     }
 
     @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(users);
+        return ResponseEntity.ok(new ArrayList<>(users.values()));
     }
 
-    private void validateUser(User user) {
-        if (user.getEmail() == null || user.getEmail().isEmpty() || !user.getEmail().contains("@")) {
-            throw new ValidationException("Электронная почта не может быть пустой и должна содержать символ @.");
+    public void validateUser(User user) throws ValidationException {
+        if (user.getEmail() == null || !user.getEmail().contains("@")) {
+            throw new ValidationException("Invalid email format.");
         }
         if (user.getLogin() == null || user.getLogin().isEmpty() || user.getLogin().contains(" ")) {
-            throw new ValidationException("Логин не может быть пустым и не должен содержать пробелы.");
-        }
-        if (user.getName() == null || user.getName().isEmpty()) {
-            user.setName(user.getLogin());
+            throw new ValidationException("Login cannot be empty or contain spaces.");
         }
         if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
-            throw new ValidationException("Дата рождения не может быть в будущем.");
+            throw new ValidationException("Birthday cannot be in the future.");
         }
     }
 }

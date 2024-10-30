@@ -1,61 +1,75 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import lombok.extern.slf4j.Slf4j;
+import ru.yandex.practicum.filmorate.exeptions.ValidationException;
+import ru.yandex.practicum.filmorate.model.Film;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exeptions.ValidationException;
-import ru.yandex.practicum.filmorate.model.Film;
-
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("/films")
-@Slf4j
 public class FilmController {
 
-    private final List<Film> films = new ArrayList<>();
+    private static final Logger log = LoggerFactory.getLogger(FilmController.class);
+    private final Map<Integer, Film> films = new HashMap<>();
     private int idCounter = 1;
-    private static final LocalDate EARLIEST_RELEASE_DATE = LocalDate.of(1895, 12, 28);
 
     @PostMapping
-    public ResponseEntity<Film> addFilm(@RequestBody Film film) {
-        validateFilm(film);
-        film.setId(idCounter++);
-        films.add(film);
-        log.info("Добавлен новый фильм: {}", film);
-        return ResponseEntity.status(HttpStatus.CREATED).body(film);
+    public ResponseEntity<?> createFilm(@RequestBody Film film) {
+        try {
+            validateFilm(film);
+            film.setId(idCounter++);
+            films.put(film.getId(), film);
+            log.info("Film created: {}", film);
+            return ResponseEntity.status(HttpStatus.CREATED).body(film);
+        } catch (ValidationException e) {
+            log.error("Film creation failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Collections.singletonMap("error", e.getMessage()));
+        }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Film> updateFilm(@PathVariable int id, @RequestBody Film film) {
-        validateFilm(film);
-        film.setId(id);
-        films.removeIf(f -> f.getId() == id);
-        films.add(film);
-        log.info("Обновлен фильм с id {}: {}", id, film);
-        return ResponseEntity.ok(film);
+    @PutMapping
+    public ResponseEntity<?> updateFilm(@RequestBody Film film) {
+        try {
+            validateFilm(film);
+            if (!films.containsKey(film.getId())) {
+                log.error("Film with id {} not found", film.getId());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Collections.singletonMap("error", "Film not found"));
+            }
+            films.put(film.getId(), film);
+            log.info("Film updated: {}", film);
+            return ResponseEntity.ok(film);
+        } catch (ValidationException e) {
+            log.error("Film update failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Collections.singletonMap("error", e.getMessage()));
+        }
     }
 
     @GetMapping
     public ResponseEntity<List<Film>> getAllFilms() {
-        return ResponseEntity.ok(films);
+        return ResponseEntity.ok(new ArrayList<>(films.values()));
     }
 
-    private void validateFilm(Film film) {
+    public void validateFilm(Film film) throws ValidationException {
         if (film.getName() == null || film.getName().isEmpty()) {
-            throw new ValidationException("Название фильма не может быть пустым.");
+            throw new ValidationException("Film name cannot be empty.");
         }
         if (film.getDescription() != null && film.getDescription().length() > 200) {
-            throw new ValidationException("Описание не может быть длиннее 200 символов.");
+            throw new ValidationException("Description must be 200 characters or less.");
         }
-        if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(EARLIEST_RELEASE_DATE)) {
-            throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года.");
+        LocalDate earliestReleaseDate = LocalDate.of(1895, 12, 28);
+        if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(earliestReleaseDate)) {
+            throw new ValidationException("Release date cannot be earlier than December 28, 1895.");
         }
         if (film.getDuration() <= 0) {
-            throw new ValidationException("Продолжительность фильма должна быть положительным числом.");
+            throw new ValidationException("Duration must be a positive number.");
         }
     }
 }

@@ -20,21 +20,27 @@ public class FilmControllerTest {
     }
 
     @Test
-    public void shouldFailValidationForEmptyName() {
-        Film film = new Film(1, "", "Valid description", LocalDate.of(2000, 1, 1), 120);
-        assertThrows(ValidationException.class, () -> filmController.addFilm(film));
+    void shouldThrowExceptionIfNameIsEmpty() {
+        Film film = new Film(1, "", "Some description", LocalDate.of(2020, 1, 1), 120);
+        assertThrows(ValidationException.class, () -> filmController.validateFilm(film), "Film name cannot be empty.");
     }
 
     @Test
-    public void shouldFailValidationForLongDescription() {
-        String longDescription = "a".repeat(201);
-        Film film = new Film(2, "Valid Name", longDescription, LocalDate.of(2000, 1, 1), 120);
-        assertThrows(ValidationException.class, () -> filmController.addFilm(film));
+    void shouldThrowExceptionIfDescriptionExceedsLimit() {
+        String longDescription = "A".repeat(201);
+        Film film = new Film(1, "Film Name", longDescription, LocalDate.of(2020, 1, 1), 120);
+        assertThrows(ValidationException.class, () -> filmController.validateFilm(film), "Description must be 200 characters or less.");
     }
 
     @Test
-    public void shouldFailValidationForNegativeDuration() {
-        Film film = new Film(3, "Valid Name", "Valid description", LocalDate.of(2000, 1, 1), -120);
-        assertThrows(ValidationException.class, () -> filmController.addFilm(film));
+    void shouldThrowExceptionIfReleaseDateIsTooEarly() {
+        Film film = new Film(1, "Film Name", "Description", LocalDate.of(1890, 1, 1), 120);
+        assertThrows(ValidationException.class, () -> filmController.validateFilm(film), "Release date cannot be earlier than December 28, 1895.");
+    }
+
+    @Test
+    void shouldThrowExceptionIfDurationIsNegative() {
+        Film film = new Film(1, "Film Name", "Description", LocalDate.of(2020, 1, 1), -10);
+        assertThrows(ValidationException.class, () -> filmController.validateFilm(film), "Duration must be a positive number.");
     }
 }
