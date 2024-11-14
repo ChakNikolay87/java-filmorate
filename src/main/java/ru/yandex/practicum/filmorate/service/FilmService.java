@@ -31,11 +31,16 @@ public class FilmService {
 
     public Film updateFilm(Film film) {
         validateFilm(film);
-        log.debug("Attempting to update film with ID: {}", film.getId());
+        if (filmStorage.getFilmById(film.getId()).isEmpty()) {
+            log.error("Film with ID {} not found", film.getId());
+            throw new IllegalArgumentException("Film not found");
+        }
+        log.debug("Updating film with ID: {}", film.getId());
         Film updatedFilm = filmStorage.updateFilm(film);
         log.info("Film updated successfully with ID: {}", updatedFilm.getId());
         return updatedFilm;
     }
+
 
     public Film getFilmById(int id) {
         log.debug("Attempting to retrieve film by ID: {}", id);

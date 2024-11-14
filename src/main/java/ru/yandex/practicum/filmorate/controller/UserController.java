@@ -44,12 +44,17 @@ public class UserController {
             User updatedUser = userService.updateUser(user);
             log.info("User updated: {}", updatedUser);
             return ResponseEntity.ok(updatedUser);
-        } catch (IllegalArgumentException | ValidationException e) {
-            log.error("User update failed: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.error("User update failed - User not found: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Collections.singletonMap("error", e.getMessage()));
+        } catch (ValidationException e) {
+            log.error("User update failed - Validation error: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Collections.singletonMap("error", e.getMessage()));
         }
     }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable int id) {

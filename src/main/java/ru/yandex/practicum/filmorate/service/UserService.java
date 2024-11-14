@@ -36,11 +36,16 @@ public class UserService {
 
     public User updateUser(User user) {
         validateUser(user);
+        if (userStorage.getUserById(user.getId()).isEmpty()) {
+            log.error("User with ID {} not found", user.getId());
+            throw new IllegalArgumentException("User not found");
+        }
         log.debug("Updating user with ID: {}", user.getId());
         User updatedUser = userStorage.updateUser(user);
         log.info("User updated successfully with ID: {}", updatedUser.getId());
         return updatedUser;
     }
+
 
     public User getUserById(int id) {
         log.debug("Retrieving user by ID: {}", id);

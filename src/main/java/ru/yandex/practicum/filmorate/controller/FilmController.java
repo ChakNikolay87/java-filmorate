@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exeptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
@@ -44,11 +45,16 @@ public class FilmController {
             log.info("Film updated: {}", updatedFilm);
             return ResponseEntity.ok(updatedFilm);
         } catch (IllegalArgumentException e) {
-            log.error("Film update failed: {}", e.getMessage());
+            log.error("Film update failed - Film not found: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Collections.singletonMap("error", e.getMessage()));
+        } catch (ValidationException e) {
+            log.error("Film update failed - Validation error: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Collections.singletonMap("error", e.getMessage()));
         }
     }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getFilmById(@PathVariable int id) {
