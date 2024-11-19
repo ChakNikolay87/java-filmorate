@@ -1,19 +1,19 @@
 package ru.yandex.practicum.filmorate.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.exeptions.ValidationException;
+import ru.yandex.practicum.filmorate.exeption.ObjectNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
-import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class FilmService {
-    private static final Logger log = LoggerFactory.getLogger(FilmService.class);
     private final FilmStorage filmStorage;
 
     @Autowired
@@ -21,68 +21,61 @@ public class FilmService {
         this.filmStorage = filmStorage;
     }
 
-    public Film addFilm(Film film) {
-        validateFilm(film);
-        log.debug("Attempting to add film: {}", film);
-        Film createdFilm = filmStorage.addFilm(film);
-        log.info("Film added successfully with ID: {}", createdFilm.getId());
-        return createdFilm;
+    public Film createFilm(Film film) {
+        return filmStorage.createFilm(film);
     }
 
     public Film updateFilm(Film film) {
-        validateFilm(film);
-        if (filmStorage.getFilmById(film.getId()).isEmpty()) {
-            log.error("Film with ID {} not found", film.getId());
-            throw new IllegalArgumentException("Film not found");
-        }
-        log.debug("Updating film with ID: {}", film.getId());
-        Film updatedFilm = filmStorage.updateFilm(film);
-        log.info("Film updated successfully with ID: {}", updatedFilm.getId());
-        return updatedFilm;
+        return filmStorage.updateFilm(film);
     }
 
-
-    public Film getFilmById(int id) {
-        log.debug("Attempting to retrieve film by ID: {}", id);
-        Film film = filmStorage.getFilmById(id)
-                .orElseThrow(() -> {
-                    log.error("Film with ID {} not found", id);
-                    return new IllegalArgumentException("Film not found");
-                });
-        log.info("Film retrieved: {}", film);
+    public Film getFilm(int id) {
+        Film film = filmStorage.getFilm(id);
+        if (film == null) {
+            throw new ObjectNotFoundException("Фильм с id = " + id + " не найден");
+        }
         return film;
     }
 
-    public List<Film> getAllFilms() {
-        log.debug("Retrieving all films");
-        List<Film> films = filmStorage.getAllFilms();
-        log.info("Total films retrieved: {}", films.size());
-        return films;
+    public Film deleteFilm(int id) {
+        if (filmStorage.getFilm(id) == null) {
+            throw new ObjectNotFoundException("Фильм с id = " + id + " не найден");
+        }
+        log.info("Фильм с id: {} был удален", id);
+        return filmStorage.deleteFilm(id);
     }
 
-    public void deleteFilm(int id) {
-        log.debug("Attempting to delete film with ID: {}", id);
-        if (filmStorage.getFilmById(id).isEmpty()) {
-            log.error("Film with ID {} not found, deletion aborted", id);
-            throw new IllegalArgumentException("Film not found");
-        }
-        filmStorage.deleteFilm(id);
-        log.info("Film deleted successfully with ID: {}", id);
+    public Collection<Film> getAllFilms() {
+        return filmStorage.getAllFilms();
     }
 
-    private void validateFilm(Film film) {
-        if (film.getName() == null || film.getName().isEmpty()) {
-            throw new ValidationException("Film name cannot be empty.");
+    public Film likeTheFilm(int filmId, int userId) {
+        if (filmStorage.getFilm(filmId) == null) {
+            throw new ObjectNotFoundException("Фильм с id = " + filmId + " не найден");
         }
-        if (film.getDescription() != null && film.getDescription().length() > 200) {
-            throw new ValidationException("Description must be 200 characters or less.");
+        filmStorage.getFilm(filmId).getUsersLikes().add(userId);
+        log.info("Пользователь с id: {} поставил лайк на фильма с id: {}", userId, filmId);
+        return filmStorage.getFilm(filmId);
+    }
+
+    public Film removeLike(int filmId, int userId) {
+        if (filmStorage.getFilm(filmId) == null) {
+            throw new ObjectNotFoundException("Фильм с id = " + filmId + " не найден");
         }
-        LocalDate earliestReleaseDate = LocalDate.of(1895, 12, 28);
-        if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(earliestReleaseDate)) {
-            throw new ValidationException("Release date cannot be earlier than December 28, 1895.");
+        if (!filmStorage.getFilm(filmId).getUsersLikes().contains(userId)) {
+            throw new ObjectNotFoundException("Лайк под фильмом не стоит");
         }
-        if (film.getDuration() <= 0) {
-            throw new ValidationException("Duration must be a positive number.");
-        }
+        filmStorage.getFilm(filmId).getUsersLikes().remove(userId);
+        log.info("Лайк был удален с фильма с id: {}", filmId);
+
+        return filmStorage.getFilm(filmId);
+    }
+
+    public List<Film> getTopOfFilms(Integer count) {
+        log.info("Топ 10 лучших фильмов по количеству лайков");
+        return filmStorage.getAllFilms().stream()
+                .sorted((o1, o2) -> Integer.compare(o2.getUsersLikes().size(), o1.getUsersLikes().size()))
+                .limit(count)
+                .collect(Collectors.toList());
     }
 }

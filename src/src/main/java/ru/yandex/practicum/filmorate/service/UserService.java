@@ -1,89 +1,121 @@
 package ru.yandex.practicum.filmorate.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.exeptions.ValidationException;
+import ru.yandex.practicum.filmorate.exeption.InternalServerException;
+import ru.yandex.practicum.filmorate.exeption.ObjectNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
-import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class UserService {
-    private static final Logger log = LoggerFactory.getLogger(UserService.class);
+
     private final UserStorage userStorage;
-    private int idCounter = 1;
 
     @Autowired
     public UserService(UserStorage userStorage) {
         this.userStorage = userStorage;
     }
 
-    public User addUser(User user) {
-        validateUser(user);
-        user.setId(idCounter++);
-        if (user.getName() == null || user.getName().isEmpty()) {
-            user.setName(user.getLogin());
-        }
-        log.debug("Adding new user: {}", user);
-        User createdUser = userStorage.addUser(user);
-        log.info("User added successfully with ID: {}", createdUser.getId());
-        return createdUser;
+    public User createUser(User user) {
+        return userStorage.createUser(user);
     }
 
     public User updateUser(User user) {
-        validateUser(user);
-        if (userStorage.getUserById(user.getId()).isEmpty()) {
-            log.error("User with ID {} not found", user.getId());
-            throw new IllegalArgumentException("User not found");
-        }
-        log.debug("Updating user with ID: {}", user.getId());
-        User updatedUser = userStorage.updateUser(user);
-        log.info("User updated successfully with ID: {}", updatedUser.getId());
-        return updatedUser;
+        return userStorage.updateUser(user);
     }
 
-
-    public User getUserById(int id) {
-        log.debug("Retrieving user by ID: {}", id);
-        User user = userStorage.getUserById(id)
-                .orElseThrow(() -> {
-                    log.error("User with ID {} not found", id);
-                    return new IllegalArgumentException("User not found");
-                });
-        log.info("User retrieved: {}", user);
-        return user;
+    public User getUser(int id) {
+        User user = userStorage.getUser(id);
+        if (user == null) {
+            throw new ObjectNotFoundException("Пользователь с id = " + id + " не найден");
+        }
+        return userStorage.getUser(id);
     }
 
-    public List<User> getAllUsers() {
-        log.debug("Retrieving all users");
-        List<User> users = userStorage.getAllUsers();
-        log.info("Total users found: {}", users.size());
-        return users;
+    public User deleteUser(int id) {
+        if (userStorage.getUser(id) == null) {
+            throw new ObjectNotFoundException("Пользователь с id = " + id + " не найден");
+        } else {
+            log.info("Пользователь с id: {} был удален", id);
+            return userStorage.deleteUser(id);
+        }
     }
 
-    public void deleteUser(int id) {
-        log.debug("Attempting to delete user with ID: {}", id);
-        if (userStorage.getUserById(id).isEmpty()) {
-            log.error("User with ID {} not found, deletion aborted", id);
-            throw new IllegalArgumentException("User not found");
-        }
-        userStorage.deleteUser(id);
-        log.info("User deleted successfully with ID: {}", id);
+    public Collection<User> getAllUsers() {
+        return userStorage.getAllUsers();
     }
 
-    private void validateUser(User user) {
-        if (user.getEmail() == null || !user.getEmail().contains("@")) {
-            throw new ValidationException("Invalid email format.");
+    public List<User> addFriends(int idOfPerson1, int idOfPerson2) {
+        if (userStorage.getUser(idOfPerson1) == null) {
+            throw new ObjectNotFoundException("Пользователь с id = " + idOfPerson1 + " не найден");
         }
-        if (user.getLogin() == null || user.getLogin().isEmpty() || user.getLogin().contains(" ")) {
-            throw new ValidationException("Login cannot be empty or contain spaces.");
+        if (userStorage.getUser(idOfPerson2) == null) {
+            throw new ObjectNotFoundException("Пользователь с id = " + idOfPerson2 + " не найден");
         }
-        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
-            throw new ValidationException("Birthday cannot be in the future.");
+        if (userStorage.getUser(idOfPerson1).getFriends().contains(idOfPerson2)) {
+            throw new InternalServerException("Пользователи уже являются друзьями");
         }
+        userStorage.getUser(idOfPerson1).getFriends().add(idOfPerson2);
+        userStorage.getUser(idOfPerson2).getFriends().add(idOfPerson1);
+        log.info("Пользователи были успешно добавлены в список друзей");
+
+        List<User> userList = new ArrayList<>();
+        userList.add(userStorage.getUser(idOfPerson1));
+        userList.add(userStorage.getUser(idOfPerson2));
+        return userList;
+    }
+
+    public List<User> deleteFriends(int idOfPerson1, int idOfPerson2) {
+        if (userStorage.getUser(idOfPerson1) == null) {
+            throw new ObjectNotFoundException("Пользователь с id = " + idOfPerson1 + " не найден");
+        }
+        if (userStorage.getUser(idOfPerson2) == null) {
+            throw new ObjectNotFoundException("Пользователь с id = " + idOfPerson2 + " не найден");
+        }
+        if (!userStorage.getUser(idOfPerson1).getFriends().contains(idOfPerson2)) {
+            throw new InternalServerException("Пользователи не являются друзьями");
+        }
+        userStorage.getUser(idOfPerson1).getFriends().remove(idOfPerson2);
+        userStorage.getUser(idOfPerson2).getFriends().remove(idOfPerson1);
+        log.info("Пользователи были успешно удалены из списка друзей");
+
+        List<User> userList = new ArrayList<>();
+        userList.add(userStorage.getUser(idOfPerson1));
+        userList.add(userStorage.getUser(idOfPerson2));
+        return userList;
+    }
+
+    public List<User> getFriendsListOfPerson(int id) {
+        if (userStorage.getUser(id) == null) {
+            throw new ObjectNotFoundException("Пользователь с id = " + id + " не найден");
+        }
+        log.info("Список друзей пользователя с id: {}", id);
+        return userStorage.getUser(id).getFriends()
+                .stream().map(userStorage::getUser)
+                .collect(Collectors.toList());
+    }
+
+    public List<User> getListOfCommonFriends(int idOfPerson1, int idOfPerson2) {
+        if (userStorage.getUser(idOfPerson1) == null) {
+            throw new ObjectNotFoundException("Пользователь с id = " + idOfPerson1 + " не найден");
+        }
+        if (userStorage.getUser(idOfPerson2) == null) {
+            throw new ObjectNotFoundException("Пользователь с id =  " + idOfPerson2 + " не найден");
+        }
+        log.info("Список общих друзей пользователей с id: {} и {}", idOfPerson1, idOfPerson2);
+        User firstPerson = userStorage.getUser(idOfPerson1);
+        User secondPerson = userStorage.getUser(idOfPerson2);
+        return firstPerson.getFriends().stream()
+                .filter(friendId -> secondPerson.getFriends().contains(friendId))
+                .map(userStorage::getUser)
+                .collect(Collectors.toList());
     }
 }
