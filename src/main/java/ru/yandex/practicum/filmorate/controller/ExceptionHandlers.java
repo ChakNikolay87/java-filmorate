@@ -1,38 +1,69 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.validator.internal.engine.path.PathImpl;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import ru.yandex.practicum.filmorate.exeption.InternalServerException;
-import ru.yandex.practicum.filmorate.exeption.ObjectNotFoundException;
-import ru.yandex.practicum.filmorate.exeption.ValidationException;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
-@RestControllerAdvice
 @Slf4j
+@RestControllerAdvice
 public class ExceptionHandlers {
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handlerValidationException(final ValidationException e) {
-        log.error("Validation error 400", e);
-        return Map.of("Validation error 400", e.getMessage());
+    public ErrorResponse handleValidationException(ValidationException e) {
+        log.error(e.getMessage());
+        return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Map<String, String> handlerObjectNotFoundException(final ObjectNotFoundException e) {
-        log.error("Object not found 404", e);
-        return Map.of("Object not found 404", e.getMessage());
+    public ErrorResponse handleNotFoundException(NotFoundException e) {
+        log.error(e.getMessage());
+        return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String, String> handlerInternalServerException(final InternalServerException e) {
-        log.error("Internal server error 500", e);
-        return Map.of("Internal server error 500", e.getMessage());
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public List<ErrorResponse> handleConstraintViolationException(ConstraintViolationException e) {
+        List<ErrorResponse> errors = new ArrayList<>();
+
+        e.getConstraintViolations().forEach(violation -> {
+            String fieldName = ((PathImpl) violation.getPropertyPath()).getLeafNode().asString();
+            errors.add(new ErrorResponse(String.format(
+                    "Not valid field %s: %s", fieldName, violation.getMessage())));
+        });
+
+        errors.stream()
+                .forEach(error -> log.error(error.getError()));
+        return errors;
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public List<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+        List<ErrorResponse> errors = new ArrayList<>();
+
+        e.getBindingResult().getFieldErrors()
+                .forEach(fieldError ->
+                        errors.add(new ErrorResponse(
+                                String.format(
+                                        "Not valid field %s: %s",
+                                        fieldError.getField(),
+                                        fieldError.getDefaultMessage())
+                        )));
+
+        errors.stream()
+                .forEach(error -> log.error(error.getError()));
+        return errors;
     }
 }
