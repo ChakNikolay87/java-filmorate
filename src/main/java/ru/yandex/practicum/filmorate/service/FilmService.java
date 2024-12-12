@@ -7,10 +7,10 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.storage.film.FilmRepository;
-import ru.yandex.practicum.filmorate.storage.genre.GenreRepository;
-import ru.yandex.practicum.filmorate.storage.mpa.MpaRepository;
-import ru.yandex.practicum.filmorate.storage.user.UserRepository;
+import ru.yandex.practicum.filmorate.repository.film.FilmRepository;
+import ru.yandex.practicum.filmorate.repository.genre.GenreRepository;
+import ru.yandex.practicum.filmorate.repository.mpa.MpaRepository;
+import ru.yandex.practicum.filmorate.repository.user.UserRepository;
 
 import java.time.LocalDate;
 import java.util.Collection;
@@ -25,7 +25,7 @@ public class FilmService {
     private final MpaRepository mpaRepository;
     private final GenreRepository genreRepository;
 
-    public Film create(Film film) {
+    public final Film create(Film film) {
         checkFilmConstraints(film);
 
         if (film.getMpa() != null && !mpaRepository.checkMpaExists(film.getMpa().getId())) {
