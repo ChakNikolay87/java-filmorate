@@ -31,6 +31,10 @@ public class Film {
 
     Set<Integer> usersLikes = new HashSet<>();
 
+    Set<Genre> genres = new HashSet<>();
+
+    MpaRating mpaRating;
+
     public void addLike(int userId) {
         usersLikes.add(userId);
     }
