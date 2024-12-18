@@ -1,45 +1,36 @@
 package ru.yandex.practicum.filmorate.model;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
-import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import lombok.experimental.FieldDefaults;
-import ru.yandex.practicum.filmorate.exeption.ObjectNotFoundException;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 @Data
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@Builder(toBuilder = true)
+@AllArgsConstructor
 public class Film {
+    private Long id;
+    private String name;
+    private String description;
+    private LocalDate releaseDate;
+    private Integer duration;
+    private Mpa mpa;
+    private final Set<Genre> genres = new HashSet<>();
+    private final Set<Long> likes = new HashSet<>();
 
-    int id;
-
-    @NotBlank(message = "Логин не может быть пустым и содержать пробелы")
-    String name;
-
-    @Size(min = 1, max = 200, message = "Максимальная длина описания — 200 символов")
-    String description;
-
-    LocalDate releaseDate;
-
-    @Positive(message = "Продолжительность фильма должна быть положительной")
-    int duration;
-
-    Set<Integer> usersLikes = new HashSet<>();
-
-    public void addLike(int userId) {
-        usersLikes.add(userId);
+    public Map<String, Object> toMap() {
+        Map<String, Object> values = new HashMap<>();
+        values.put("film_id", id);
+        values.put("name", name);
+        values.put("description", description);
+        values.put("release_date", releaseDate.toString());
+        values.put("duration", duration);
+        values.put("mpa_rating_id", mpa == null ? null : mpa.getId());
+        return values;
     }
-
-    public void removeLike(int userId) {
-        if (!usersLikes.contains(userId)) {
-            throw new ObjectNotFoundException("Пользователь с id = " + userId + " не ставил лайк фильму");
-        }
-        usersLikes.remove(userId);
-    }
-
 }
