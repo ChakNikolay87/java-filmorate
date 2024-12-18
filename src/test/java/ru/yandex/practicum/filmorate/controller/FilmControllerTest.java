@@ -1,18 +1,19 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.repository.genre.JdbcGenreRepository;
-import ru.yandex.practicum.filmorate.repository.mpa.JdbcMpaRepository;
-import ru.yandex.practicum.filmorate.service.FilmService;
-import ru.yandex.practicum.filmorate.repository.film.InMemoryFilmRepository;
-import ru.yandex.practicum.filmorate.repository.user.InMemoryUserRepository;
-
-import java.time.LocalDate;
-
-import static org.junit.jupiter.api.Assertions.*;
+//import org.junit.jupiter.api.BeforeEach;
+//import org.junit.jupiter.api.Test;
+//import ru.yandex.practicum.filmorate.exception.ValidationException;
+//import ru.yandex.practicum.filmorate.model.Film;
+//import ru.yandex.practicum.filmorate.repository.film.JdbcFilmRepository;
+//import ru.yandex.practicum.filmorate.repository.genre.JdbcGenreRepository;
+//import ru.yandex.practicum.filmorate.repository.mpa.JdbcMpaRepository;
+//import ru.yandex.practicum.filmorate.service.FilmService;
+//import ru.yandex.practicum.filmorate.repository.film.InMemoryFilmRepository;
+//import ru.yandex.practicum.filmorate.repository.user.InMemoryUserRepository;
+//
+//import java.time.LocalDate;
+//
+//import static org.junit.jupiter.api.Assertions.*;
 
 class FilmControllerTest {
 //    FilmController filmController;
