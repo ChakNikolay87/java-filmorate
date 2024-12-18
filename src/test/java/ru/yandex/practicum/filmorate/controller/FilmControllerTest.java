@@ -4,7 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.repository.film.JdbcFilmRepository;
 import ru.yandex.practicum.filmorate.repository.genre.JdbcGenreRepository;
 import ru.yandex.practicum.filmorate.repository.mpa.JdbcMpaRepository;
 import ru.yandex.practicum.filmorate.service.FilmService;
